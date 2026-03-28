@@ -1,0 +1,16 @@
+{
+  "name": "leli-scents-bot",
+  "version": "1.0.0",
+  "description": "Leli Scents WhatsApp chatbot powered by Claude AI",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "twilio": "^5.4.5"
+  }
+}
