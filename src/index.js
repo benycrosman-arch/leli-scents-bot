@@ -10,7 +10,10 @@ const ZAPI_URL = `https://api.z-api.io/instances/${process.env.ZAPI_INSTANCE_ID}
 async function sendWhatsApp(phone, message) {
   const response = await fetch(ZAPI_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Client-Token': process.env.ZAPI_CLIENT_TOKEN,
+    },
     body: JSON.stringify({ phone, message }),
   });
   if (!response.ok) {
@@ -24,11 +27,16 @@ app.get('/health', (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
+  const clientToken = req.headers['client-token'];
+  if (clientToken !== process.env.ZAPI_CLIENT_TOKEN) {
+    return res.sendStatus(401);
+  }
+
   res.sendStatus(200);
 
-  const { phone, text, isGroupMsg } = req.body;
+  const { phone, text, isGroupMsg, fromMe } = req.body;
 
-  if (isGroupMsg || !text?.message || !phone) return;
+  if (isGroupMsg || fromMe || !text?.message || !phone) return;
 
   try {
     const reply = await getReply(phone, text.message);
