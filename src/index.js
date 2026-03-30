@@ -29,15 +29,24 @@ app.get('/health', (req, res) => {
 app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 
+  console.log('Webhook received:', JSON.stringify(req.body));
+
   const { phone, text, isGroupMsg, fromMe } = req.body;
 
-  if (isGroupMsg || fromMe || !text?.message || !phone) return;
+  if (isGroupMsg) { console.log('Filtered: isGroupMsg'); return; }
+  if (fromMe) { console.log('Filtered: fromMe'); return; }
+  if (!text?.message) { console.log('Filtered: no text.message, body type:', req.body.type); return; }
+  if (!phone) { console.log('Filtered: no phone'); return; }
+
+  console.log('Processing message from', phone, ':', text.message);
 
   try {
     const reply = await getReply(phone, text.message);
+    console.log('Claude reply:', reply);
     await sendWhatsApp(phone, reply);
+    console.log('Message sent successfully to', phone);
   } catch (err) {
-    console.error('Error handling message:', err);
+    console.error('Error handling message:', err.message);
   }
 });
 
