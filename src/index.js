@@ -27,11 +27,6 @@ app.get('/health', (req, res) => {
 });
 
 app.post('/webhook', async (req, res) => {
-  const clientToken = req.headers['client-token'];
-  if (clientToken !== process.env.ZAPI_CLIENT_TOKEN) {
-    return res.sendStatus(401);
-  }
-
   res.sendStatus(200);
 
   const { phone, text, isGroupMsg, fromMe } = req.body;
