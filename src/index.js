@@ -16,9 +16,10 @@ async function sendWhatsApp(phone, message) {
     },
     body: JSON.stringify({ phone, message }),
   });
+  const body = await response.text();
+  console.log('Z-API response:', response.status, body);
   if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Z-API error: ${response.status} ${err}`);
+    throw new Error(`Z-API error: ${response.status} ${body}`);
   }
 }
 
@@ -40,13 +41,20 @@ app.post('/webhook', async (req, res) => {
 
   console.log('Processing message from', phone, ':', text.message);
 
+  let reply;
   try {
-    const reply = await getReply(phone, text.message);
+    reply = await getReply(phone, text.message);
     console.log('Claude reply:', reply);
+  } catch (err) {
+    console.error('Claude error:', err.message);
+    return;
+  }
+
+  try {
     await sendWhatsApp(phone, reply);
     console.log('Message sent successfully to', phone);
   } catch (err) {
-    console.error('Error handling message:', err.message);
+    console.error('Z-API send error:', err.message);
   }
 });
 
