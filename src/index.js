@@ -1,4 +1,13 @@
 require('dotenv').config();
+
+const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'ZAPI_INSTANCE_ID', 'ZAPI_TOKEN', 'ZAPI_CLIENT_TOKEN'];
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    console.error(`Missing required env var: ${key}`);
+    process.exit(1);
+  }
+}
+
 const express = require('express');
 const { getReply } = require('./claude');
 
@@ -16,9 +25,8 @@ async function sendWhatsApp(phone, message) {
     },
     body: JSON.stringify({ phone, message }),
   });
-  const body = await response.text();
-  console.log('Z-API response:', response.status, body);
   if (!response.ok) {
+    const body = await response.text();
     throw new Error(`Z-API error: ${response.status} ${body}`);
   }
 }
@@ -30,31 +38,15 @@ app.get('/health', (req, res) => {
 app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 
-  console.log('Webhook received:', JSON.stringify(req.body));
-
   const { phone, text, isGroupMsg, fromMe } = req.body;
-
-  if (isGroupMsg) { console.log('Filtered: isGroupMsg'); return; }
-  if (fromMe) { console.log('Filtered: fromMe'); return; }
-  if (!text?.message) { console.log('Filtered: no text.message, body type:', req.body.type); return; }
-  if (!phone) { console.log('Filtered: no phone'); return; }
-
-  console.log('Processing message from', phone, ':', text.message);
-
-  let reply;
-  try {
-    reply = await getReply(phone, text.message);
-    console.log('Claude reply:', reply);
-  } catch (err) {
-    console.error('Claude error:', err.message);
-    return;
-  }
+  if (isGroupMsg || fromMe || !text?.message || !phone) return;
 
   try {
+    const reply = await getReply(phone, text.message);
     await sendWhatsApp(phone, reply);
-    console.log('Message sent successfully to', phone);
+    console.log(`Replied to ${phone}`);
   } catch (err) {
-    console.error('Z-API send error:', err.message);
+    console.error('Error:', err.message);
   }
 });
 
