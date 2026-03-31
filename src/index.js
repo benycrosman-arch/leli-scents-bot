@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'ZAPI_INSTANCE_ID', 'ZAPI_TOKEN', 'ZAPI_CLIENT_TOKEN', 'BASE_URL'];
+const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'ZAPI_INSTANCE_ID', 'ZAPI_TOKEN', 'ZAPI_CLIENT_TOKEN'];
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
     console.error(`Missing required env var: ${key}`);
@@ -9,43 +9,26 @@ for (const key of REQUIRED_ENV) {
 }
 
 const express = require('express');
-const path = require('path');
 const { getReply } = require('./claude');
-const { detectImageRequest, getImageFilename } = require('./images');
 
 const app = express();
 app.use(express.json());
-app.use('/images', express.static(path.join(__dirname, '..', 'public', 'images')));
 
-const ZAPI_BASE = `https://api.z-api.io/instances/${process.env.ZAPI_INSTANCE_ID}/token/${process.env.ZAPI_TOKEN}`;
-const ZAPI_HEADERS = {
-  'Content-Type': 'application/json',
-  'Client-Token': process.env.ZAPI_CLIENT_TOKEN,
-};
+const ZAPI_URL = `https://api.z-api.io/instances/${process.env.ZAPI_INSTANCE_ID}/token/${process.env.ZAPI_TOKEN}/send-text`;
 
-async function zapiPost(endpoint, body) {
-  const response = await fetch(`${ZAPI_BASE}/${endpoint}`, {
+async function sendWhatsApp(phone, message) {
+  const response = await fetch(ZAPI_URL, {
     method: 'POST',
-    headers: ZAPI_HEADERS,
-    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json',
+      'Client-Token': process.env.ZAPI_CLIENT_TOKEN,
+    },
+    body: JSON.stringify({ phone, message }),
   });
   if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Z-API ${endpoint} error: ${response.status} ${err}`);
+    const body = await response.text();
+    throw new Error(`Z-API error: ${response.status} ${body}`);
   }
-}
-
-async function sendText(phone, message) {
-  await zapiPost('send-text', { phone, message });
-}
-
-async function sendImage(phone, product, caption) {
-  const filename = getImageFilename(product);
-  if (!filename) return false;
-
-  const imageUrl = `${process.env.BASE_URL}/images/${filename}`;
-  await zapiPost('send-image', { phone, image: imageUrl, caption });
-  return true;
 }
 
 app.get('/health', (req, res) => {
@@ -58,21 +41,9 @@ app.post('/webhook', async (req, res) => {
   const { phone, text, isGroupMsg, fromMe } = req.body;
   if (isGroupMsg || fromMe || !text?.message || !phone) return;
 
-  const userMessage = text.message;
-
   try {
-    // Check if the user is asking for a product image
-    const imageProduct = detectImageRequest(userMessage);
-    if (imageProduct) {
-      const sent = await sendImage(phone, imageProduct, `${imageProduct} ✨`);
-      if (!sent) {
-        await sendText(phone, `Oi! Ainda não tenho a foto do ${imageProduct} por aqui, mas você pode ver no nosso Instagram 📸 @leli.scents 😍`);
-      }
-    }
-
-    // Always get and send Claude's text reply
-    const reply = await getReply(phone, userMessage);
-    await sendText(phone, reply);
+    const reply = await getReply(phone, text.message);
+    await sendWhatsApp(phone, reply);
     console.log(`Replied to ${phone}`);
   } catch (err) {
     console.error('Error:', err.message);
