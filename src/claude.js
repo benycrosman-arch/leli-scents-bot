@@ -3,7 +3,11 @@ const Anthropic = require('@anthropic-ai/sdk');
 const SYSTEM_PROMPT = require('./systemPrompt');
 const { getHistory, addMessage, clearHistory } = require('./sessions');
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  maxRetries: 3,
+  timeout: 30000,
+});
 
 const RESET_KEYWORDS = ['reiniciar', 'restart', 'recomeçar', 'reset'];
 
