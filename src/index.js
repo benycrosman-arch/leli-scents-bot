@@ -45,7 +45,7 @@ app.post('/webhook', async (req, res) => {
     await sendWhatsApp(phone, reply);
     console.log(`Replied to ${phone}`);
   } catch (err) {
-    console.error('Error:', err.message);
+    console.error(`Error for ${phone}: [${err.constructor.name}] ${err.message}`);
   }
 });
 
