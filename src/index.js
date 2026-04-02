@@ -3,8 +3,7 @@ require('dotenv').config();
 const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'ZAPI_INSTANCE_ID', 'ZAPI_TOKEN', 'ZAPI_CLIENT_TOKEN'];
 for (const key of REQUIRED_ENV) {
   if (!process.env[key]) {
-    console.error(`Missing required env var: ${key}`);
-    process.exit(1);
+    console.warn(`Warning: missing env var: ${key}`);
   }
 }
 
