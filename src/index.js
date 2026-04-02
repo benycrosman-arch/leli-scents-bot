@@ -34,6 +34,28 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'Leli Scents Bot' });
 });
 
+app.get('/test-anthropic', async (req, res) => {
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'hi' }],
+      }),
+    });
+    const data = await r.json();
+    res.json({ httpStatus: r.status, data });
+  } catch (err) {
+    res.json({ error: err.message, type: err.constructor.name });
+  }
+});
+
 app.post('/webhook', async (req, res) => {
   res.sendStatus(200);
 
